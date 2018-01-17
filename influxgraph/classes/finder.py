@@ -65,7 +65,9 @@ class InfluxDBFinder(object):
                  'memcache_series_loader_mutex_key', 'memcache_fields_key',
                  'deltas', 'retention_policies', 'index', 'reader',
                  'index_lock', 'index_path', 'graphite_templates',
-                 'loader_limit', 'fill_param')
+                 'loader_limit', 'fill_param',
+                 'index_builder'
+                 )
 
     def __init__(self, config):
         influxdb_config = config.get('influxdb', {})
@@ -111,6 +113,7 @@ class InfluxDBFinder(object):
         self.graphite_templates = parse_influxdb_graphite_templates(templates) \
             if templates else None
         self._start_loader(series_loader_interval)
+        self.index_builder = config.get('index_builder')  # TODO better name
         self.index = None
         self.index_path = config.get('search_index')
         self.index_lock = FileLock(influxdb_config.get('index_lock_file',
@@ -120,7 +123,10 @@ class InfluxDBFinder(object):
             aggregation_functions=self.aggregation_functions,
             memcache=self.memcache,
             deltas=self.deltas)
-        self._start_reindexer(reindex_interval)
+        if self.index_builder:
+            self._start_reindexer(reindex_interval)
+        else:
+            self._start_index_reloader(reindex_interval)
 
     def _start_loader(self, series_loader_interval):
         # No memcached configured? Cannot use series loader
@@ -154,6 +160,18 @@ class InfluxDBFinder(object):
                                   kwargs={'interval': series_loader_interval})
         loader.daemon = True
         loader.start()
+
+    def _start_index_reloader(self, reload_interval):
+        new_index = False
+        if not self.index:
+            self.load_index()
+        logger.debug("Starting index reloader thread with interval %s",
+                     reload_interval)
+        reloader = threading.Thread(target=self._reload_index,
+                                    kwargs={'interval': reload_interval})
+        reloader.daemon = True
+        reloader.start()
+        logger.debug("reloader %s", reloader)
 
     def _start_reindexer(self, reindex_interval):
         new_index = False
@@ -522,6 +540,16 @@ class InfluxDBFinder(object):
     def _read_static_data(self, data_file):
         data = json.load(open(data_file))['results'][0]['series'][0]['values']
         return [d for k in data for d in k if d]
+
+    def _reload_index(self, interval=900):
+        """Perform index reload"""
+        while True:
+            time.sleep(interval)
+            try:
+                logger.debug("load_index() in _reload_index()")
+                self.load_index()
+            except Exception as ex:
+                logger.error("Error occured in index reload thread - %s", ex)
 
     def _reindex(self, new_index=False, interval=900):
         """Perform re-index"""
