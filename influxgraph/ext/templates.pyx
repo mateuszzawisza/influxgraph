@@ -154,6 +154,7 @@ cdef int _parse_serie_no_tags(char *measurement,
 
 def parse_series(list series, dict fields,
                  list graphite_templates, bytes separator=b'.'):
+    print("Is that you John Wayne? Is is me?")
     """Parses series and fields with/without graphite templates
     and returns built Index
 
