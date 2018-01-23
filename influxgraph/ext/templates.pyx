@@ -154,7 +154,6 @@ cdef int _parse_serie_no_tags(char *measurement,
 
 def parse_series(list series, dict fields,
                  list graphite_templates, bytes separator=b'.'):
-    print("Is that you John Wayne? Is is me?")
     """Parses series and fields with/without graphite templates
     and returns built Index
 
@@ -169,6 +168,7 @@ def parse_series(list series, dict fields,
 
     :rtype: :mod:`influxgraph.ext.nodetrie.Node`
     """
+    print("Is that you John Wayne? Is is me?")
     cdef unicode serie
     cdef char **c_paths
     cdef size_t path_i = 0, tags_i = 0
@@ -605,6 +605,7 @@ def _read_measurement_metric_values(infl_data, measurement,
 
 def read_influxdb_values(influxdb_data, list paths, dict measurement_data):
     """Return metric path -> datapoints dict for values from InfluxDB data"""
+    print("My Spoon is too big")
     _data = {}
     if not isinstance(influxdb_data, list):
         influxdb_data = [influxdb_data]
