@@ -630,8 +630,10 @@ class InfluxDBFinder(object):
         """Load index from file"""
         if not self.index_path:
             return
-        if not (self.index and hasattr(self.index, 'from_file')):
-            return
+        # NOTE This will never evalue to true when index is not present
+        # commenting for now
+        # if not (self.index and hasattr(self.index, 'from_file')):
+        #     return
         logger.info("Loading index from file %s", self.index_path,)
         try:
             index_fh = open(self.index_path, 'rt')
